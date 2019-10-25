@@ -1,0 +1,137 @@
+import numpy as np
+import os
+import scipy
+import matplotlib.pyplot as plt
+from scipy import stats
+import rebound
+import glob
+%matplotlib inline
+pi=np.pi
+mypath='/home/arod/Research/testclone/'
+os.chdir(mypath)
+
+#Defining Necessary Functions
+
+#Sort Directories by Mass function
+def directories(a,base):
+    'Given an angle, returns a sorted list of directories from lowest to highest Mass'
+    dirs=[]
+    os.chdir(base)
+    for file in glob.glob('*_a{0}'.format(a)):
+        dirs.append(file)
+    vals=[]
+    for i in range(len(dirs)):
+        val=float(dirs[i][1:8])
+        vals.append(val)
+    newvals=np.sort(np.array(vals))
+    newvals=list(newvals)
+    newvals0=[]
+    for i in range(len(newvals)):
+        newvals0.append('{:.1e}'.format(newvals[i]))
+    redirs=[]
+    for i in range(len(dirs)):
+        redirs.append('M'+newvals0[i]+dirs[i][8:])
+    return redirs,newvals
+
+#Main Function
+def AngleAnalyzer_test(a, base):
+    'For a given sma=a, will compute the average angle of stars at the last snapshot(No bh)'
+    os.chdir(base)
+    #ensure you're in working directory
+    redirs,masses=directories(a,base)
+    allangles=[]
+    allstandarddev=[]
+    #empty arrays of the final averaged angles, and standard deviations over the four trials and 101 stars for each directory
+    for k in range(len(redirs)):
+        mypath=base+redirs[k]
+        os.chdir(mypath)
+        binfiles=[]
+        for file in glob.glob('*.bin'):
+            binfiles.append(file)
+        means=[]
+        #averaged angle over four trials and 100 stars
+        standarddev=[]
+        #standard deviation over four trials and 100 stars
+        for i in range(len(binfiles)):
+            sa=rebound.SimulationArchive(binfiles[i])
+            sim=sa[0]
+            #last snapshot
+            part=sim.particles[:-1]
+            p=part
+            ie=np.empty(len(part))
+            #initialize array
+            for l,p in enumerate(p):
+                pos=np.array(p.xyz)
+                v=np.array(p.vxyz)
+                j=np.cross(pos,v)
+                rhat=pos/np.linalg.norm(pos)
+                e=np.cross(v,j)-rhat
+                ie[l]=np.arctan2(e[1],e[0])
+                #computes the angle in radians for a given mass, given sma. Appends to ie
+            means.append(np.mean(ie))
+            #averages all angle values of 101 stars over 4 different trials and appends them to means array
+        averaged_angle=np.mean(means) 
+        #the angles have been averaged over the four trials already.  Now, average over number of stars(101)
+        allangles.append(averaged_angle)
+        #append means from one mass value to array storing values from all trials
+        standarddev=np.std(means)
+        #compute std of angles in one trial
+        allstandarddev.append(standarddev)
+        #combine all trials' results of std measurements
+    return np.array(directories(a,base)[1]),np.array(allangles),np.array(allstandarddev)
+
+#Defining Paths
+withbh='/home/arod/Research/testclone/test9_withbh/grid/'
+nobh='/home/arod/Research/testclone/test9_no_bh/grid_run9_controltest3/grid/'
+
+def get_data(sma,path):
+    Data=AngleAnalyzer_test(sma,path)
+    return Data
+
+#Plotting Function
+def plotter():
+    smas=[2,6,18]
+    Data_nobh=[]
+    Data_withbh=[]
+    for i in range(len(smas)):
+        datai=get_data(smas[i],nobh)
+        Data_nobh.append(datai)
+    for j in range(len(smas)):
+        dataj=get_data(smas[j],withbh)
+        Data_withbh.append(dataj)
+    for l in range(len(Data_nobh)):
+        plt.plot(Data_nobh[l][0],Data_nobh[l][1]*(180/pi))
+        plt.errorbar(Data_nobh[l][0],Data_nobh[l][1]*(180/pi),yerr=Data_nobh[l][2]*(180/pi),color='red')
+        plt.xlabel('Normalized Mass')
+        plt.ylabel('Angle(Averaged over all stars) in Degrees')
+        plt.title('Angle of stars in the Disk without Perturber for sma = {0}'.format(smas[l]))
+        plt.xscale('log')
+        plt.savefig('No_perturber_angles_sma={0}'.format(smas[l]))
+        plt.show()
+    for m in range(len(Data_withbh)):
+        plt.plot(Data_withbh[m][0],Data_withbh[m][1]*(180/pi))
+        plt.errorbar(Data_withbh[m][0],Data_withbh[m][1]*(180/pi),yerr=Data_withbh[m][2]*(180/pi),color='blue')
+        plt.xlabel('Normalized Mass')
+        plt.ylabel('Angle(Averaged over all stars) in Degrees')
+        plt.title('Angle of stars in the Disk with Perturber for sma = {0}'.format(smas[m]))
+        plt.xscale('log')
+        plt.savefig('With_perturber_angles_sma={0}'.format(smas[m]))
+        plt.show()
+
+#KS test function
+def kstest():
+    smas=[2,6,18]
+    Data_nobh=[]
+    Data_withbh=[]
+    for i in range(len(smas)):
+        datai=get_data(smas[i],nobh)
+        Data_nobh.append(datai)
+    for j in range(len(smas)):
+        dataj=get_data(smas[j],withbh)
+        Data_withbh.append(dataj)
+    ksvals=[]
+    for n in range(len(Data_nobh)):
+        ks=scipy.stats.ks_2samp(Data_nobh[n][1],Data_withbh[n][1])
+        ksvals.append(ks)
+    for i in range(len(ksvals)):
+        print('KS value={:.2f} with pvalue={:.2f}'.format(ksvals[i][0],ksvals[i][1]))
