@@ -12,12 +12,22 @@ from collections import OrderedDict
 import re
 import matplotlib.colors as mcol
 from scipy import signal
+%matplotlib inline
+
 pi=np.pi
-loc1='/home/arod/Research/testclone2/test19_highmasshighsma/grid2/grid/M5.0e-01_a9.0_ang180'
-loc3='/home/arod/Research/testclone2/test19_highmasshighsma/grid2/grid/'
+
 
 def directories(a,ang,base):
-    'Given an angle, returns a sorted list of directories from lowest to highest Mass'
+    '''
+    Given parameters of a given simulation, returns a list of directories sorted by mass(lowest to highest)
+    Parameters:
+    a: sma or perturber
+    ang: inclination of perturber
+    base: base directory location of simulations
+    
+    Returns:
+    List of directories sorted from lowest to highest perturber mass
+    '''
     dirs=[]
     os.chdir(base)
     for file in glob.glob('*_a{0}_ang{1}'.format(a,ang)):
@@ -38,18 +48,42 @@ def directories(a,ang,base):
 
 
 def atoi(text):
+    '''
+    Function which turns text to integers to be more easily sorted
+    Parameters: Text to be sorted
+    
+    Returns: integer datatype of text'''
     return int(text) if text.isdigit() else text
 
 def natural_keys(text):
+    '''
+    Sorts text from lowest to highest so dat files are more easily read
+    Parameters: data file in text format
+    
+    Returns: List of sorted datfiles
+    '''
     return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
 def get_bases():
+    '''
+    Gets the names of the four different simulation names of one particular set of parameters
+    Parameters: None
+    
+    Returns: List of four different simulation names '''
     fs=glob.glob("*orb_0.dat")
     fs=[ff.replace("_orb_0.dat", "") for ff in fs]
     return fs
 
+#note: various functions include perturber parameters
+#due to way data is organized, have random 'perturber' parameters for isolated END so that functions still work...
+#... for perturber simulations
+
 def get_orbital_elements(data):
-    #given a 6 column list,returns each of the keplerian orbital elements
+    '''
+    Given a 6 column list,returns each of the keplerian orbital elements in order of a,e,i,Omega,omega, and trueanomaly
+    Parameters: 6-D list to analyze
+    
+    Returns: Each of the Keplerian orbital elements'''
     a=data[:,0]
     e=data[:,1]
     i=data[:,2]
@@ -59,6 +93,11 @@ def get_orbital_elements(data):
     return a,e,i,Omega,omega,trueanomaly
 
 def get_orbital_elements_fromrebound(orbits):
+    '''
+    Given Rebound orbital data,returns each of the keplerian orbital elements in order of a,e,i,Omega,omega, and trueanomaly
+    Parameters: Rebound orbital data
+    
+    Returns: Each of the Keplerian orbital elements'''
     p=[pval.pomega for pval in orbits[:-1]]
     sma=[aval.a for aval in orbits[:-1]]
     eccs=[eccval.e for eccval in orbits[:-1]]
@@ -67,6 +106,12 @@ def get_orbital_elements_fromrebound(orbits):
     return p,sma,eccs,w,W
 
 def get_elements_fromdat(dat):
+    '''
+    Given a dat file, gets relevant orbital elements
+    Paraneters:
+    dat: Data file
+    
+    Returns: relevant orbital elements calculated using Rebound'''
     a,e,i,Omega,omega,trueanomaly=get_orbital_elements(dat)
     sim=rebound.Simulation()
     #Add bh
@@ -78,7 +123,16 @@ def get_elements_fromdat(dat):
     return get_orbital_elements_fromrebound(orbits)
 
 def get_filtered(data,element):
+    '''
+    Given Rebound orbital data, gets the given orbital element specified by element parameter
+    Parameters: 
+    data: Rebound orbital data(expecting order of p,sma,e,w,W)
+    element: string form of orbital element
+    
+    Returns: Calculated data for disk of specified element'''
+
     #expects order of p,sma,e,w,W
+    #nans not really needed isolated END, since no ejected stars
     p,sma,e,w,W=get_elements_fromdat(data)
     eccs=np.array(e)
     indices=np.argwhere(eccs>1)
@@ -110,6 +164,18 @@ def get_filtered(data,element):
         return altpomegas
 
 def get_star_orbitalelement(element,sma,ang,loc,mass,snap,base):
+    '''
+    Gets the orbital element of disk stars under specified perturber parameters
+    Parameters:
+    element: string form of orbital element
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of simulation data
+    mass: mass of perturber
+    snap: snapshot of 500 orbits
+    base: simulation out of four possible choices
+    
+    Returns: specified orbital element data for disk under perturber parameters'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     datfiles=[]
@@ -123,6 +189,17 @@ def get_star_orbitalelement(element,sma,ang,loc,mass,snap,base):
 
 
 def get_star_orbitalelement_overbases(element,sma,ang,loc,mass,snap):
+    '''
+    Gets the orbital element of disk stars under specified perturber parameters over all bases
+    Parameters:
+    element: string form of orbital element
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of simulation data
+    mass: mass of perturber
+    snap: snapshot of 500 orbits
+    
+    Returns: specified orbital element data for disk under perturber parameters over all bases'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     bases=get_bases()
@@ -142,17 +219,19 @@ def get_star_orbitalelement_overbases(element,sma,ang,loc,mass,snap):
             dat.append(get_star_orbitalelement('eccentricity',sma,ang,loc,mass,snap,bases[i]))
         return np.nanmean(dat,axis=0)
     
-def get_colors(length):
-    x=np.linspace(0,1,length)[::-1]
-    y=np.linspace(0,0,length)
-    z=np.linspace(0,1,length)
-    colors=[]
-    for i in range(len(x)):
-        color=x[i],y[i],z[i]
-        colors.append(color)
-    return colors
 
 def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    mass: mass of perturber
+    snap: Snapshot out of the 500 orbits
+    base: Simulation out of four possible choices
+    
+    Returns: ie values for the disk'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     datfiles=[]
@@ -191,12 +270,23 @@ def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
         del ie[indices[i]]
         ie.insert(indices[i],np.nan)
     return ie
-    
+
+#next functions assume data has 5000 orbits
 def plotter_snap5000(sma,snap,maxdat0,mindat0,bases0):
+    '''
+    Plots ie vs sma for a given snapshot while colorcoding the eccentricity of stars
+    
+    Parameters:
+    sma: semi-major axis of perturber
+    snap: Snapshot out of the 5000 orbits
+    maxdat0: Max eccentricity out of 5000 orbits (calculated elsewhere for colorbar)
+    mindat0: Min eccentricity out of 5000 orbits (calculated elsewhere for colorbar)
+    bases0: Simulation out of four possible choices
+    
+    Returns: Plot of ie vs sma at given snapshot'''
     smas=get_star_orbitalelement('sma',sma,180,loc00,-1,snap,bases0[0])
     ies=AngleAnalyzer_data_finegrid(sma,180,loc00,-1,snap,bases0[0])
     eccs=get_star_orbitalelement('eccentricity',sma,180,loc00,-1,snap,bases0[0])
-    z=np.linspace(0,1,100)
     try:
         c1=plt.scatter(ies,smas,c=eccs,cmap='Blues')
         plt.colorbar(c1,label='e')
@@ -211,11 +301,21 @@ def plotter_snap5000(sma,snap,maxdat0,mindat0,bases0):
     fig.set_size_inches(8.5,6.5)
     
 def movie_maker_snap5000(sma,maxdat0,mindat0,bases0):
+    '''
+    Makes a movie of ie vs sma for a given snapshot while colorcoding the eccentricity of stars
+    
+    Parameters:
+    sma: semi-major axis of perturber
+    snap: Snapshot out of the 5000 orbits
+    maxdat0: Max eccentricity out of 5000 orbits (calculated elsewhere for colorbar)
+    mindat0: Min eccentricity out of 5000 orbits (calculated elsewhere for colorbar)
+    bases0: Simulation out of four possible choices
+    
+    Returns: Movie of ie vs sma'''
     for i in range(5000):
         smas=get_star_orbitalelement('sma',sma,180,loc00,-1,i,bases0[0])
         ies=AngleAnalyzer_data_finegrid(sma,180,loc00,-1,i,bases0[0])
         eccs=get_star_orbitalelement('eccentricity',sma,180,loc00,-1,i,bases0[0])
-        z=np.linspace(0,1,100)
         try:
             c1=plt.scatter(ies,smas,c=eccs,cmap='Blues')
             plt.colorbar(c1,label='e')
@@ -231,43 +331,4 @@ def movie_maker_snap5000(sma,maxdat0,mindat0,bases0):
         plt.savefig('/home/arod/Moviefigs8/Snap{:04d}.png'.format(i))
         plt.clf()
         print('Orbit {0} complete'.format(i))
-    
-def plotter_snap4500(sma,snap,maxdat0,mindat0,bases0):
-    smas=get_star_orbitalelement('sma',sma,45,loc03,-1,snap,bases0[0])
-    ies=AngleAnalyzer_data_finegrid(sma,45,loc03,-1,snap,bases0[0])
-    eccs=get_star_orbitalelement('eccentricity',sma,45,loc03,-1,snap,bases0[0])
-    z=np.linspace(0,1,99)
-    try:
-        c1=plt.scatter(ies,smas,c=eccs,cmap='Blues')
-        plt.colorbar(c1,label='e')
-    except ValueError:
-        pass
-    plt.xlabel(r'$i_{e}$')
-    plt.ylabel('Semi-Major Axis')
-    plt.xlim(-3.4,3.4)
-    plt.ylim(0.5,2.5)
-    plt.title('Orbit {0}'.format(snap))
-    fig=plt.gcf()
-    fig.set_size_inches(8.5,6.5)
-    
-def movie_maker_snap4500(sma,maxdat0,mindat0,bases0):
-    for i in range(4500):
-        smas=get_star_orbitalelement('sma',sma,45,loc03,-1,i,bases0[0])
-        ies=AngleAnalyzer_data_finegrid(sma,45,loc03,-1,i,bases0[0])
-        eccs=get_star_orbitalelement('eccentricity',sma,45,loc03,-1,i,bases0[0])
-        z=np.linspace(0,1,99)
-        try:
-            c1=plt.scatter(ies,smas,c=eccs,cmap='Blues')
-            plt.colorbar(c1,label='e')
-        except ValueError:
-            pass
-        plt.xlabel(r'$i_{e}$')
-        plt.ylabel('Semi-Major Axis')
-        plt.xlim(-3.4,3.4)
-        plt.ylim(0.5,2.5)
-        plt.title('Orbit {0}'.format(i))
-        fig=plt.gcf()
-        fig.set_size_inches(8.5,6.5)
-        plt.savefig('/home/arod/Moviefigs9/Snap{:04d}.png'.format(i))
-        plt.clf()
-        print('Orbit {0} complete'.format(i))
+ 
