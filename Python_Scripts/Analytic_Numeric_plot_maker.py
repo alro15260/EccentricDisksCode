@@ -16,9 +16,6 @@ from uncertainties import ufloat
 %matplotlib inline
 pi=np.pi
 
-control0='/home/arod/Research/testclone2/test27_control_manyruns/grid'
-control1='/home/arod/Research/testclone2/test27_control_manyruns/grid/M5.0e-02_a2_ang45'
-
 def directories(a,ang,base):
     '''
     Given parameters of a given simulation, returns a list of directories sorted by mass(lowest to highest)
@@ -462,5 +459,5 @@ def GridPlotter_num_analytical(smas,ang,loc0,snap,bins,a,ap,num_data):
     label=ax0.set_xlabel(r'Perturber Mass $[M_p]$',fontsize=22)
     ax0.xaxis.set_label_coords(.5,-.075)
     plt.ylabel('Semi-Major Axis')
-    plt.savefig('/home/arod/PaperPlots/AnalyticalNumerical.pdf')
+    plt.savefig('/path/to/file.pdf')
     plt.show()
