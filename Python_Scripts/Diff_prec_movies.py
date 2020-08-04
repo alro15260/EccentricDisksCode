@@ -270,6 +270,48 @@ def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
         del ie[indices[i]]
         ie.insert(indices[i],np.nan)
     return ie
+def AngleAnalyzer_finegrid(sma,ang,loc,mass,snap):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over base simulations
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    mass: mass of perturber
+    snap: Snapshot out of the 500 orbits
+    
+    Returns: ie values for the disk over base simulations'''
+    redirs=directories(sma,ang,loc)[0]
+    os.chdir(redirs[mass])
+    bases=get_bases()
+    circstds=[]
+    for i in range(len(bases)):
+        circstds.append(stats.circstd(AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,bases[i])))
+    circstds=np.array(circstds)*(180/pi)
+    return circstds
+
+def AngleAnalyzer_all_finegrid(sma,ang,loc,snap):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over base simulations and masses
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    snap: Snapshot out of the 500 orbits
+    
+    Returns: ie values for the disk over base simulations over perturber masses'''
+    allstds=[]
+    allerrs=[]
+    redirs=directories(sma,ang,loc)[0]
+    for k in range(len(redirs)):
+        mypath=loc+'/'+redirs[k]
+        allcircstds=AngleAnalyzer_finegrid(sma,ang,loc,k,snap)
+        allstds.append(np.mean(allcircstds))
+        allerrs.append(np.std(allcircstds))
+    return allstds,allerrs
+    def get_tdename():
+    name=glob.glob('*_tde')
+    return name
 
 #next functions assume data has 5000 orbits
 def plotter_snap5000(sma,snap,maxdat0,mindat0,bases0):
