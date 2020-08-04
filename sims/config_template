@@ -1,0 +1,18 @@
+[params]
+pRun = 1
+keep_bins=False
+outDir=OUT
+
+[stars]
+N=100
+
+[bh]
+N=1
+e=1.0e-4
+a_min=SMA
+a_max=SMA
+m=MASS
+ang1 = 1.0e-4
+ang2 = 1.0e-4
+ang3 = 1.0e-4
+
