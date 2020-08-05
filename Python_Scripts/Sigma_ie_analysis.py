@@ -21,7 +21,16 @@ pi=np.pi
 
 #Sort Directories by Mass function
 def directories(a,ang,base):
-    'Given an angle, returns a sorted list of directories from lowest to highest Mass'
+    '''
+    Given parameters of a given simulation, returns a list of directories sorted by mass(lowest to highest)
+    Parameters:
+    a: sma or perturber
+    ang: inclination of perturber
+    base: base directory location of simulations
+    
+    Returns:
+    List of directories sorted from lowest to highest perturber mass
+    '''
     dirs=[]
     os.chdir(base)
     for file in glob.glob('*_a{0}_ang{1}'.format(a,ang)):
@@ -41,23 +50,49 @@ def directories(a,ang,base):
     return redirs,newvals
 
 def get_bases():
+    '''
+    Gets the names of the four different simulation names of one particular set of parameters
+    Parameters: None
+    
+    Returns: List of four different simulation names '''
     fs=glob.glob("*orb_0.dat")
     fs=[ff.replace("_orb_0.dat", "") for ff in fs]
     return fs
 
 def atoi(text):
+    '''
+    Function which turns text to integers to be more easily sorted
+    Parameters: Text to be sorted
+    
+    Returns: integer datatype of text'''
     return int(text) if text.isdigit() else text
 
 def natural_keys(text):
+    '''
+    Sorts text from lowest to highest so dat files are more easily read
+    Parameters: data file in text format
+    
+    Returns: List of sorted datfiles
+    '''
     return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
+
 def get_bases():
+    '''
+    Gets the names of the four different simulation names of one particular set of parameters
+    Parameters: None
+    
+    Returns: List of four different simulation names '''
     fs=glob.glob("*orb_0.dat")
     fs=[ff.replace("_orb_0.dat", "") for ff in fs]
     return fs
 
 def get_orbital_elements(data):
-    #given a 6 column list,returns each of the keplerian orbital elements
+    '''
+    Given a 6 column list,returns each of the keplerian orbital elements in order of a,e,i,Omega,omega, and trueanomaly
+    Parameters: 6-D list to analyze
+    
+    Returns: Each of the Keplerian orbital elements'''
     a=data[:,0]
     e=data[:,1]
     i=data[:,2]
@@ -67,6 +102,17 @@ def get_orbital_elements(data):
     return a,e,i,Omega,omega,trueanomaly
 
 def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    mass: mass of perturber
+    snap: Snapshot out of the 500 orbits
+    base: Simulation out of four possible choices
+    
+    Returns: ie values for the disk'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     datfiles=[]
@@ -98,6 +144,16 @@ def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
     return ie[allmags]
 
 def AngleAnalyzer_finegrid(sma,ang,loc,mass,snap):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over base simulations
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    mass: mass of perturber
+    snap: Snapshot out of the 500 orbits
+    
+    Returns: ie values for the disk over base simulations'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     bases=get_bases()
@@ -108,6 +164,15 @@ def AngleAnalyzer_finegrid(sma,ang,loc,mass,snap):
     return circstds
 
 def AngleAnalyzer_all_finegrid(sma,ang,loc,snap):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over base simulations and masses
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    snap: Snapshot out of the 500 orbits
+    
+    Returns: ie values for the disk over base simulations over perturber masses'''
     allstds=[]
     allerrs=[]
     redirs=directories(sma,ang,loc)[0]
@@ -119,6 +184,14 @@ def AngleAnalyzer_all_finegrid(sma,ang,loc,snap):
     return allstds,allerrs
 
 def get_dat(sma,ang,loc):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over snapshots (assumed to be 2000 here)
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    
+    Returns: ie values for the disk over base simulations over perturber masses over all orbits'''
     allvals=[]
     allerrs=[]
     for i in range(2000):
