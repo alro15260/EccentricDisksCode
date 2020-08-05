@@ -19,10 +19,20 @@ from astropy.io import ascii
 
 %pylab inline
 %matplotlib inline
+
 pi=np.pi
 
 def directories(a,ang,base):
-    'Given an angle, returns a sorted list of directories from lowest to highest Mass'
+    '''
+    Given parameters of a given simulation, returns a list of directories sorted by mass(lowest to highest)
+    Parameters:
+    a: sma or perturber
+    ang: inclination of perturber
+    base: base directory location of simulations
+    
+    Returns:
+    List of directories sorted from lowest to highest perturber mass
+    '''
     dirs=[]
     os.chdir(base)
     for file in glob.glob('*_a{0}_ang{1}'.format(a,ang)):
@@ -42,6 +52,16 @@ def directories(a,ang,base):
     return redirs,newvals
 
 def get_eccs_dat(sma,ang,simpath):
+    '''
+    Given simulation dataset, returns the eccentricities of the dataset
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    simpath: base directory location of simulations
+    
+    Returns:
+    Eccentricities of dataset
+    '''
     os.chdir(simpath)
     bases=get_bases()
     allmeans=[]
@@ -66,6 +86,16 @@ def get_eccs_dat(sma,ang,simpath):
     return mean,allstds
 
 def get_incs_dat(sma,ang,simpath):
+    '''
+    Given simulation dataset, returns the inclinations of the dataset
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    simpath: base directory location of simulations
+    
+    Returns:
+    Inclinations of dataset
+    '''
     os.chdir(simpath)
     bases=get_bases()
     allmeans=[]
@@ -100,17 +130,39 @@ def get_incs_dat(sma,ang,simpath):
     
     
 def atoi(text):
+    '''
+    Function which turns text to integers to be more easily sorted
+    Parameters: Text to be sorted
+    
+    Returns: integer datatype of text'''
     return int(text) if text.isdigit() else text
 
 def natural_keys(text):
+    '''
+    Sorts text from lowest to highest so dat files are more easily read
+    Parameters: data file in text format
+    
+    Returns: List of sorted datfiles
+    '''
     return [ atoi(c) for c in re.split(r'(\d+)', text) ]
 
 def get_bases():
+    '''
+    Gets the names of the four different simulation names of one particular set of parameters
+    Parameters: None
+    
+    Returns: List of four different simulation names '''
     fs=glob.glob("*orb_0.dat")
     fs=[ff.replace("_orb_0.dat", "") for ff in fs]
     return fs
 
 def get_orbital_elements(data):
+    '''
+    Given a 6 column list,returns each of the keplerian orbital elements
+    Parameters: A 6 column list referring to each of the 6 keplerian orbital elements
+    
+    Returns: a tuple(6-D) of each of the orbital elements
+    '''
     #given a 6 column list,returns each of the keplerian orbital elements
     a=data[:,0]
     e=data[:,1]
@@ -121,6 +173,19 @@ def get_orbital_elements(data):
     return a,e,i,Omega,omega,trueanomaly
 
 def get_eccs_finegrid(sma,ang,loc,mass,snap,base):
+    '''
+    Given simulation parameters, returns the eccentricities of the dataset directly from Rebound
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    mass: Mass of perturber
+    snap: Snapshot of simulations out of 500 orbits
+    base: base simulation
+    
+    Returns:
+    Eccentricities of dataset
+    '''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     datfiles=[]
@@ -148,6 +213,19 @@ def get_eccs_finegrid(sma,ang,loc,mass,snap,base):
     return eccs
 
 def enorm(sma,ang,loc,mass,snap,base):
+    '''
+    Given simulation parameters, returns the normed eccentricity vectors of the dataset directly from Rebound
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    mass: Mass of perturber
+    snap: Snapshot of simulations out of 500 orbits
+    base: base simulation
+    
+    Returns:
+    Normed Eccentricity vectors of dataset
+    '''
     e=get_eccs_finegrid(sma,ang,loc,mass,snap,base)
     allmags=[]
     for i in range(len(e)):
@@ -163,14 +241,45 @@ def enorm(sma,ang,loc,mass,snap,base):
     return np.array(ehat)
 
 def e_par(ehat0):
+    '''
+    Given unit eccentricity vecotrs, calculates the components in the xy plane
+    
+    Parameters: Unit eccentricity vectors
+    Returns: Unit eccentricity vectors projection in xy plane
+    '''
     ehat0[:,2]=0
     return ehat0
 
 def ecc_stat_xy(sma,ang,loc,mass,snap,base):
+    '''
+    Given simulation parameters, returns the normed eccentricity vectors of the dataset directly from Rebound
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    mass: Mass of perturber
+    snap: Snapshot of simulations out of 500 orbits
+    base: base simulation
+    
+    Returns:
+    Rayleigh Dipole Statistic in xy plane
+    '''
     e_xy=e_par(enorm(sma,ang,loc,mass,snap,base))
     return np.linalg.norm(np.sum(e_xy,axis=0)) / len(e_xy)
 
 def ecc_stat_xy_overbases(sma,ang,loc,mass,snap):
+    '''
+    Given simulation parameters, returns the normed eccentricity vectors of the dataset directly from Rebound
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    mass: Mass of perturber
+    snap: Snapshot of simulations out of 500 orbits
+    
+    Returns:
+    Rayleigh Dipole Statistic in xy plane over all base simulations
+    '''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     bases=get_bases()
@@ -180,6 +289,17 @@ def ecc_stat_xy_overbases(sma,ang,loc,mass,snap):
     return alleccstat
 
 def ecc_stat_xy_all(sma,ang,loc,snap):
+    '''
+    Given simulation parameters, returns the normed eccentricity vectors of the dataset directly from Rebound
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    snap: Snapshot of simulations out of 500 orbits
+    
+    Returns:
+    Rayleigh Dipole Statistic in xy plane over all base simulations and perturber parameters
+    '''
     alleccstats=[]
     alleccstaterrs=[]
     redirs=directories(sma,ang,loc)[0]
@@ -191,6 +311,16 @@ def ecc_stat_xy_all(sma,ang,loc,snap):
     return alleccstats,alleccstaterrs
 
 def get_all_data(sma,ang,loc):
+    '''
+    Given simulation parameters, returns the Rayleigh dipole statistic in the xy plane over all orbits (assumed to be 2000 here)
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    
+    Returns:
+    Rayleigh Dipole Statistic in xy plane over all orbits
+    '''
     data=[]
     for i in range(2000):
         data.append(ecc_stat_xy_all(sma,ang,loc,i))
@@ -198,6 +328,15 @@ def get_all_data(sma,ang,loc):
     return data
 
 def get_mass_data(data,mass):
+    '''
+    Given the simulation data, get the Rayleigh Dipole Statistic in the xy plane and uncertainties over masses
+    Parameters:
+    data: Data from get_all_data function
+    mass: Perturber mass to consider
+    
+    Returns:
+    Organized data by mass
+    '''
     alldat=[]
     allerr=[]
     for i in range(len(data)):
@@ -208,6 +347,17 @@ def get_mass_data(data,mass):
     return alldat,allerr
 
 def ecc_stat_xy_heavy(sma,ang,loc,snap):
+    '''
+    Given the simulation data, get the Rayleigh Dipole Statistic in the xy plane and uncertainties for heaviest mass
+    Parameters:
+    sma: sma or perturber
+    ang: inclination of perturber
+    loc: base directory location of simulations
+    snap: snapshot in simulations
+    
+    Returns:
+    Organized data for heaviest mass perturber
+    '''
     alleccstats=[]
     alleccstaterrs=[]
     redirs=directories(sma,ang,loc)[0][-1]
@@ -216,61 +366,6 @@ def ecc_stat_xy_heavy(sma,ang,loc,snap):
     alleccstats.append(np.mean(eccstat))
     alleccstaterrs.append(np.std(eccstat))
     return alleccstats,alleccstaterrs
-
-def get_heavy_data(sma,ang,loc):
-    data=[]
-    keys=[1,2,3,4,5]
-    for i in range(2000):
-        data.append(ecc_stat_xy_heavy(sma,ang,loc,i))
-        print('Orbit {0} complete'.format(i))
-    return data
-def t_osc(e,sigma_ie):
-    t_sec=200
-    return ((e*sigma_ie)**(3/2))*(t_sec)
-
-
-def get_eccs_dat2(sma,ang,simpath,mass):
-    redirs=directories(sma,ang,simpath)[0]
-    os.chdir(redirs[mass])
-    bases=get_bases()
-    allmeans=[]
-    for j in range(len(bases)):
-        datfiles=[]
-        for file in glob.glob('*{0}'.format(bases[j])+'_orb_*'):
-            datfiles.append(file)
-        datfiles.sort(key=natural_keys)
-        means=[]
-        for i in range(len(datfiles)):
-            vals=np.genfromtxt(datfiles[i])[:,1][:-1]
-            opp=(vals<1)
-            filtered=vals[opp]
-            means.append(np.mean(filtered))
-        allmeans.append(means)
-    mean=np.average(allmeans,axis=0)
-    allstds=[]
-    allmeans=np.array(allmeans)
-    for i in range(2000):
-        val=np.std(allmeans[:,i])
-        allstds.append(val)
-    return mean,allstds
-
-def get_all_tosc(sma,ang,loc,mass):
-    e=get_eccs_dat2(sma,ang,loc,mass)
-    t_osc_all=[]
-    t_osc_err=[]
-    for i in range(2000):
-        eorbit=e[0][i]
-        eorbit_err=e[1][i]
-        sigma_ie,sigma_ie_err=np.array(AngleAnalyzer_all_finegrid(sma,ang,loc,i))[:,mass]*(pi/180)
-        u=ufloat(sigma_ie,sigma_ie_err)
-        v=ufloat(eorbit,eorbit_err)
-        w=t_osc(u,v)
-        wval=w.nominal_value
-        werr=w.std_dev
-        t_osc_all.append(wval)
-        t_osc_err.append(werr)
-        print('Orbit {0} complete'.format(i))
-    return t_osc_all,t_osc_err
 
 def get_signalstrength(data00):
     f,Pxx=signal.periodogram(data00)
@@ -281,6 +376,17 @@ def get_signalstrength(data00):
     print('Period of signal is {:.2f} orbital periods'.format(1/f[np.argmax(Pxx)]))
     
 def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    mass: mass of perturber
+    snap: Snapshot out of the 500 orbits
+    base: Simulation out of four possible choices
+    
+    Returns: ie values for the disk'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     datfiles=[]
@@ -312,6 +418,16 @@ def AngleAnalyzer_data_finegrid(sma,ang,loc,mass,snap,base):
     return ie[allmags]
 
 def AngleAnalyzer_finegrid(sma,ang,loc,mass,snap):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over base simulations
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    mass: mass of perturber
+    snap: Snapshot out of the 500 orbits
+    
+    Returns: ie values for the disk over base simulations'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     bases=get_bases()
@@ -322,6 +438,15 @@ def AngleAnalyzer_finegrid(sma,ang,loc,mass,snap):
     return circstds
 
 def AngleAnalyzer_all_finegrid(sma,ang,loc,snap):
+    '''
+    For particular perturber parameters, simulation, and snapshot, returns ie values of the disk over base simulations and masses
+    Parameters:
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of perturber simulations
+    snap: Snapshot out of the 500 orbits
+    
+    Returns: ie values for the disk over base simulations over perturber masses'''
     allstds=[]
     allerrs=[]
     redirs=directories(sma,ang,loc)[0]
@@ -354,6 +479,11 @@ def altcolumnmethod(array,index):
     return a,e,i,Omega,omega,trueanomaly
 
 def get_orbital_elements_fromrebound(orbits):
+    '''
+    Given Rebound orbital data,returns each of the keplerian orbital elements in order of a,e,i,Omega,omega, and trueanomaly
+    Parameters: Rebound orbital data
+    
+    Returns: Each of the Keplerian orbital elements'''
     p=[pval.pomega for pval in orbits[:-1]]
     sma=[aval.a for aval in orbits[:-1]]
     eccs=[eccval.e for eccval in orbits[:-1]]
@@ -362,6 +492,12 @@ def get_orbital_elements_fromrebound(orbits):
     return p,sma,eccs,w,W
 
 def get_elements_fromdat(dat):
+    '''
+    Given a dat file, gets relevant orbital elements
+    Paraneters:
+    dat: Data file
+    
+    Returns: relevant orbital elements calculated using Rebound'''
     a,e,i,Omega,omega,trueanomaly=get_orbital_elements(dat)
     sim=rebound.Simulation()
     #Add bh
@@ -373,6 +509,13 @@ def get_elements_fromdat(dat):
     return get_orbital_elements_fromrebound(orbits)
 
 def get_filtered(data,element):
+    '''
+    Given Rebound orbital data, gets the given orbital element specified by element parameter
+    Parameters: 
+    data: Rebound orbital data(expecting order of p,sma,e,w,W)
+    element: string form of orbital element
+    
+    Returns: Calculated data for disk of specified element'''
     #expects order of p,sma,e,w,W
     p,sma,e,w,W=get_elements_fromdat(data)
     eccs=np.array(e)
@@ -405,6 +548,18 @@ def get_filtered(data,element):
         return altpomegas
 
 def get_star_orbitalelement(element,sma,ang,loc,mass,snap,base):
+    '''
+    Gets the orbital element of disk stars under specified perturber parameters
+    Parameters:
+    element: string form of orbital element
+    sma: semi-major axis of perturber
+    ang: inclination of perturber
+    loc: base directory of simulation data
+    mass: mass of perturber
+    snap: snapshot of 500 orbits
+    base: simulation out of four possible choices
+    
+    Returns: specified orbital element data for disk under perturber parameters'''
     redirs=directories(sma,ang,loc)[0]
     os.chdir(redirs[mass])
     datfiles=[]
@@ -415,68 +570,3 @@ def get_star_orbitalelement(element,sma,ang,loc,mass,snap,base):
     #order is p,sma,eccs,w,W
     data=get_filtered(dat,element)
     return data
-
-def get_inneredge(sma,ang,loc,mass,snap,base):
-    smas=get_star_orbitalelement('sma',2,45,loc1,mass,snap,bases[0])
-    pomegas=get_star_orbitalelement('pomega',2,45,loc1,mass,snap,bases[0])
-    indices=np.argsort(smas)[:76]
-    newpomegas=[]
-    for i in range(len(indices)):
-        newpomegas.append(pomegas[indices[i]])
-    return newpomegas
-
-def completion_per(value):
-    pers=np.arange(0,2100,200)
-    if value in pers:
-        print('{:.0f}% complete'.format((value/2000)*100))
-        
-def get_all_orbits(element,index):
-    os.chdir(loc2)
-    bases=get_bases()
-    allorbits=[]
-    for i in range(2000):
-        allorbits.append(get_star_orbitalelement(element,2,45,loc1,-1,i,bases[0])[int(index)])
-        completion_per(i)
-    return allorbits
-
-def get_all_orbits_inneredge():
-    os.chdir(loc2)
-    bases=get_bases()
-    allorbits=[]
-    for i in range(2000):
-        allorbits.append(np.mean(get_inneredge(2,45,loc1,-1,i,bases[0])))
-        completion_per(i)
-    return allorbits
-
-def get_pomega_data(loc,index,edge):
-    os.chdir(loc)
-    names=get_tdename()
-    bases=get_bases()
-    bases.sort(key=natural_keys)
-    names.sort(key=natural_keys)
-    indices=[]
-    #use only first tde file for now
-    dat=np.genfromtxt(names[0])
-    indices.append(np.unique(dat[:,-2]))
-    dat=[]
-    for j in range(len(indices)):
-        dat.append(indices[j].tolist())
-    dat=dat[0]
-    orbits=get_all_orbits('pomega',index)
-    return np.array(orbits)-np.array(edge)
-    
- def tosc_plotter(indices):
-    inneredge=get_all_orbits_inneredge()
-    for i in range(len(indices)):
-        e=get_all_orbits('eccentricity',indices[i])
-        p=get_pomega_data(loc2,indices[i],inneredge)
-        p0=p-inneredge
-        dat=[]
-        for j in range(2000):
-            orbit=p0[j],e[j]
-            dat.append(tuple(orbit))
-        dat=np.array(dat)
-        plt.scatter(dat[:,0]*(180/pi),dat[:,1])
-        plt.xlabel(r'$\bar{\omega}-<\bar{\omega}_{inner\,\,disk}>(deg)$')
-        plt.ylabel('e')
-        plt.show()
